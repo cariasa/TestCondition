@@ -12,6 +12,15 @@ Public Class CalculadoraIndicadores
                                & "JOIN Variables V1 ON FI.IdVariableNumerador = V1.IdVariable " _
                                & "JOIN Variables V2 ON FI.IdVariableDenominador = V2.IdVariable " _
                                & "WHERE IEP.IdPrograma = @IdPrograma"
+    Private InsertValoresDepartameto As String = "INSERT INTO ValoresDepartamento " _
+                               & "(IdAplicacionInstrumento, IdIndicadorEvaluacionPorPrograma, IdDepartamento, Valor, CreadoPor) " _
+                               & "VALUES (@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdDepartamento,@Valor,@CreadoPor)"
+    Private InsertValoresMunicipio As String = "INSERT INTO ValoresMunicipio " _
+                               & "(IdAplicacionInstrumento, IdIndicadorEvaluacionPorPrograma, IdDepartamento, IdMunicipio,Valor, CreadoPor) " _
+                               & "VALUES (@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdDepartamento, @IdMunicipio, @Valor,@CreadoPor)"
+    Private InsertValoresSexo As String = "INSERT INTO ValoresSexo " _
+                               & "(IdAplicacionInstrumento, IdIndicadorEvaluacionPorPrograma, IdSexo, Valor, CreadoPor) " _
+                               & "VALUES (@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdSexo,@Valor,@CreadoPor)"
     Private IdPrograma As Integer
     Private IdLevantamiento As Integer
     Public Sub New(ByVal ConnectionString As String, ByVal IdPrograma As Integer, ByVal IdLevantamiento As Integer)
@@ -39,7 +48,9 @@ Public Class CalculadoraIndicadores
 
         'Acá se almacenarán todos los valores
         Dim VariableAcum As New Dictionary(Of String, Double)
-
+        Dim VariableDeptoAcum As New Dictionary(Of VariableDepartamento, Double)(New VariableDepartamentoComparer)
+        Dim VariableMuniAcum As New Dictionary(Of VariableDepartamentoMunicipio, Double)(New VariableDepartamentoMunicipioComparer)
+        Dim VariableSexoAcum As New Dictionary(Of VariableSexo, Double)(New VariableSexoComparer)
         For Each f As ParFSU_IE In ListFichasID
             'Recuperar la parte vivienda de la ficha UNA INSTANCIA
             Dim FichaVivienda As FichaSU = RetrieveSingleFichaForVivienda(f.CodigoFSU)
@@ -47,7 +58,7 @@ Public Class CalculadoraIndicadores
             Dim FichasHogares As ArrayList = RetrieveSingleFichaAllHogares(f.CodigoFSU)
             'Recuperar los miembros de la ficha      UNA LISTA
             Dim FichasMiembros As ArrayList = RetrieveSingleFichaAllMembers(f.CodigoFSU)
-
+            Dim VariablePoblacion As Boolean
             For Each VarTreePair In VariablesConditions
                 'Si la Condicion, en la raiz tiene el nivel máximo, que se ve es de vivienda entonces usar la de vivienda
                 'Si la Condicion, en la raiz tiene el nivel máximo, que se ve es de hogar hacer por cada hogar
@@ -56,14 +67,47 @@ Public Class CalculadoraIndicadores
                 If VarTreePair.Value.Level = "V" Then
                     ListaFichas = New ArrayList
                     ListaFichas.Add(FichaVivienda)
+                    VariablePoblacion = False
                 ElseIf VarTreePair.Value.Level = "H" Then
                     ListaFichas = FichasHogares
+                    VariablePoblacion = False
                 Else
                     ListaFichas = FichasMiembros
+                    VariablePoblacion = True
                 End If
 
                 For Each Ficha As FichaSU In ListaFichas
+                    Dim VarDepto As VariableDepartamento = Ficha.GetDepartamento
+                    VarDepto.Variable = VarTreePair.Key
+                    Dim VarDeptoMuni As VariableDepartamentoMunicipio = Ficha.GetDepartamentoMunicipio
+                    VarDeptoMuni.Variable = VarTreePair.Key
+                    Dim VarSexo As VariableSexo
+                    If VariablePoblacion Then
+                        VarSexo = Ficha.GetSexo
+                        VarSexo.Variable = VarTreePair.Key
+                    End If
                     If VarTreePair.Value.Evaluate(Ficha) Then
+                        'Desagregacion por Ubicacion Geográfica
+                        If VariableDeptoAcum.ContainsKey(VarDepto) Then
+                            VariableDeptoAcum(VarDepto) = VariableDeptoAcum(VarDepto) + 1
+                        Else
+                            VariableDeptoAcum(VarDepto) = 1
+                        End If
+                        If VariableMuniAcum.ContainsKey(VarDeptoMuni) Then
+                            VariableMuniAcum(VarDeptoMuni) = VariableMuniAcum(VarDeptoMuni) + 1
+                        Else
+                            VariableMuniAcum(VarDeptoMuni) = 1
+                        End If
+                        '=========================================================
+                        'Desagregacion por Sexo
+                        If VariablePoblacion Then
+                            If VariableSexoAcum.ContainsKey(VarSexo) Then
+                                VariableSexoAcum(VarSexo) = VariableSexoAcum(VarSexo) + 1
+                            Else
+                                VariableSexoAcum(VarSexo) = 1
+                            End If
+                        End If
+                        '=========================================================
                         If VariableAcum.ContainsKey(VarTreePair.Key) Then
                             VariableAcum(VarTreePair.Key) = VariableAcum(VarTreePair.Key) + 1
                         Else
@@ -81,7 +125,15 @@ Public Class CalculadoraIndicadores
         'Next
         Dim SqlConn As SqlConnection = GetConnection()
 
-
+        Dim NumsSexo As New Dictionary(Of Integer, Double)
+        Dim DensSexo As New Dictionary(Of Integer, Double)
+        Dim NumsDepto As New Dictionary(Of Integer, Double)
+        Dim DensDepto As New Dictionary(Of Integer, Double)
+        Dim NumsMunis As New Dictionary(Of VariableDepartamentoMunicipio, Double)(New VariableDepartamentoMunicipioComparer)
+        Dim DensMunis As New Dictionary(Of VariableDepartamentoMunicipio, Double)(New VariableDepartamentoMunicipioComparer)
+        Dim DeptoPair As KeyValuePair(Of VariableDepartamento, Double)
+        Dim MuniPair As KeyValuePair(Of VariableDepartamentoMunicipio, Double)
+        Dim SexoPair As KeyValuePair(Of VariableSexo, Double)
         For Each Formula As FormulaIndicador In Formulas
             Dim Command As New SqlCommand("InsertarValoresIndicadores", SqlConn)
             Dim num As Double
@@ -111,9 +163,127 @@ Public Class CalculadoraIndicadores
             Command.CommandType = CommandType.StoredProcedure
             Command.ExecuteNonQuery()
             Console.WriteLine("IdIndicador = " + Convert.ToString(Formula.IdIndicador) + " = " + Convert.ToString(res))
+            'Insertar Valores Desagregados
+            'Insertar Valores por Departamento ===================================================================
+            For Each DeptoPair In VariableDeptoAcum
+                If DeptoPair.Key.Variable = Formula.Numerador Then
+                    NumsDepto(DeptoPair.Key.Departamento) = DeptoPair.Value
+                End If
+                If DeptoPair.Key.Variable = Formula.Denominador Then
+                    DensDepto(DeptoPair.Key.Departamento) = DeptoPair.Value
+                End If
+            Next
+            For Each NumDen As KeyValuePair(Of Integer, Double) In NumsDepto
+                num = NumDen.Value
+                If (DensDepto.ContainsKey(NumDen.Key)) Then
+                    den = DensDepto(NumDen.Key)
+                Else
+                    den = 0
+                End If
+                If num = 0 Then
+                    res = 0
+                ElseIf den = 0 Then
+                    res = 0
+                Else
+                    res = num / den
+                End If
+                Dim CommandDepto As New SqlCommand(InsertValoresDepartameto, SqlConn)
+                '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdDepartamento,@Valor,@CreadorPor
+                CommandDepto.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
+                CommandDepto.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
+                CommandDepto.Parameters.AddWithValue("@IdDepartamento", NumDen.Key)
+                CommandDepto.Parameters.AddWithValue("@Valor", res)
+                CommandDepto.Parameters.AddWithValue("@CreadoPor", CreadoPor)
+                CommandDepto.ExecuteNonQuery()
+
+            Next
+            '=====================================================================================================
+            'Insertar Valores por Municipio ======================================================================
+            NumsMunis.Clear()
+            DensMunis.Clear()
+            For Each MuniPair In VariableMuniAcum
+                Dim MunDep As VariableDepartamentoMunicipio
+                If MuniPair.Key.Variable = Formula.Numerador Then
+                    MunDep = New VariableDepartamentoMunicipio
+                    MunDep.Variable = "N"
+                    MunDep.Departamento = MuniPair.Key.Departamento
+                    MunDep.Municipio = MuniPair.Key.Municipio
+                    NumsMunis(MunDep) = MuniPair.Value
+                End If
+                If MuniPair.Key.Variable = Formula.Denominador Then
+                    MunDep = New VariableDepartamentoMunicipio
+                    MunDep.Variable = "N"
+                    MunDep.Departamento = MuniPair.Key.Departamento
+                    MunDep.Municipio = MuniPair.Key.Municipio
+                    DensMunis(MunDep) = MuniPair.Value
+                End If
+            Next
+            For Each NumDen As KeyValuePair(Of VariableDepartamentoMunicipio, Double) In NumsMunis
+                num = NumDen.Value
+                DensMunis.Keys(0).Equals(NumDen.Key)
+                If DensMunis.ContainsKey(NumDen.Key) Then
+                    den = DensMunis(NumDen.Key)
+                Else
+                    den = 0
+                End If
+                If num = 0 Then
+                    res = 0
+                ElseIf den = 0 Then
+                    res = 0
+                Else
+                    res = num / den
+                End If
+                Dim CommandMuni As New SqlCommand(InsertValoresMunicipio, SqlConn)
+                '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdDepartamento, @IdMunicipio, @Valor,@CreadorPor
+                CommandMuni.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
+                CommandMuni.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
+                CommandMuni.Parameters.AddWithValue("@IdDepartamento", NumDen.Key.Departamento)
+                CommandMuni.Parameters.AddWithValue("@IdMunicipio", NumDen.Key.Municipio)
+                CommandMuni.Parameters.AddWithValue("@Valor", res)
+                CommandMuni.Parameters.AddWithValue("@CreadoPor", CreadoPor)
+                CommandMuni.ExecuteNonQuery()
+            Next
+            '=====================================================================================================
+            'Insertar Valores por Sexo ===========================================================================
+            For Each SexoPair In VariableSexoAcum
+                If SexoPair.Key.Variable = Formula.Numerador Then
+                    NumsSexo(SexoPair.Key.Sexo) = SexoPair.Value
+                End If
+                If SexoPair.Key.Variable = Formula.Denominador Then
+                    DensSexo(SexoPair.Key.Sexo) = SexoPair.Value
+                End If
+            Next
+            For Each NumDen As KeyValuePair(Of Integer, Double) In NumsSexo
+                num = NumDen.Value
+                If DensSexo.ContainsKey(NumDen.Key) Then
+                    den = DensSexo(NumDen.Key)
+                Else
+                    den = 0
+                End If
+                If num = 0 Then
+                    res = 0
+                ElseIf den = 0 Then
+                    res = 0
+                Else
+                    res = num / den
+                End If
+                Dim CommandSexo As New SqlCommand(InsertValoresSexo, SqlConn)
+                '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdSexo,@Valor,@CreadorPor
+                CommandSexo.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
+                CommandSexo.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
+                CommandSexo.Parameters.AddWithValue("@IdSexo", NumDen.Key)
+                CommandSexo.Parameters.AddWithValue("@Valor", res)
+                CommandSexo.Parameters.AddWithValue("@CreadoPor", CreadoPor)
+                CommandSexo.ExecuteNonQuery()
+            Next
+            '=====================================================================================================
         Next
         SqlConn.Close()
     End Sub
+    Function CrearMapasDesagregacion() As Dictionary(Of String, Dictionary(Of String, Double))
+        Dim QueryDepartamentos As String
+        Return Nothing
+    End Function
     Function GetFormulasFromPrograma(ByVal IdPrograma As Integer) As ArrayList
         Dim SqlConn As SqlConnection
         SqlConn = GetConnection()
@@ -154,6 +324,14 @@ Public Class CalculadoraIndicadores
             Ficha.SetValorRespuestaUnica("V9", Reader("v9"))
             Ficha.SetValorRespuestaUnica("V10", Reader("v10"))
             Ficha.SetValorRespuestaUnica("V12", Reader("v12"))
+            'Valores Desagregación por Ubicación Geográfica
+            Ficha.SetValorRespuestaUnica("V01", Reader("V01"))  'Departamento
+            Ficha.SetValorRespuestaUnica("V02", Reader("V02"))  'Municipio
+            Ficha.SetValorRespuestaUnica("V03", Reader("V03"))  'Aldea    
+            Ficha.SetValorRespuestaUnica("V04", Reader("V04"))  'Caserio  
+            Ficha.SetValorRespuestaUnica("V05", Reader("V05"))  'Barrio   
+            Ficha.SetValorRespuestaUnica("V06", Reader("V06"))  'Region
+            ' =================================================
             Dim ASqlConn As SqlConnection = GetConnection()
             Dim ACommand As New SqlCommand("AmenazasPorViviendaPorFicha", ASqlConn)
             ACommand.Parameters.AddWithValue("@CodigoFSU", IdFicha)
@@ -182,6 +360,39 @@ Public Class CalculadoraIndicadores
         Dim ListaFichas As New ArrayList
         While Reader.Read
             Ficha = New FichaSU(IdFicha, Reader("IdVivienda"), "M", Reader("IdHogar"))
+            'Datos de Vivienda - Encabezado
+            Ficha.SetValorRespuestaUnica("V1", Reader("v1"))
+            Ficha.SetValorRespuestaUnica("V2", Reader("v2"))
+            Ficha.SetValorRespuestaUnica("V3", Reader("v3"))
+            Ficha.SetValorRespuestaUnica("V4", Reader("v4"))
+            Ficha.SetValorRespuestaUnica("V5", Reader("v5"))
+            Ficha.SetValorRespuestaUnica("V6", Reader("v6"))
+            Ficha.SetValorRespuestaUnica("V7", Reader("v7"))
+            Ficha.SetValorRespuestaUnica("V8", Reader("v8"))
+            Ficha.SetValorRespuestaUnica("V8_Pago", Reader("v8_Pago"))
+            Ficha.SetValorRespuestaUnica("V9", Reader("v9"))
+            Ficha.SetValorRespuestaUnica("V10", Reader("v10"))
+            Ficha.SetValorRespuestaUnica("V12", Reader("v12"))
+            'Valores Desagregación por Ubicación Geográfica
+            Ficha.SetValorRespuestaUnica("V01", Reader("V01"))  'Departamento
+            Ficha.SetValorRespuestaUnica("V02", Reader("V02"))  'Municipio
+            Ficha.SetValorRespuestaUnica("V03", Reader("V03"))  'Aldea    
+            Ficha.SetValorRespuestaUnica("V04", Reader("V04"))  'Caserio  
+            Ficha.SetValorRespuestaUnica("V05", Reader("V05"))  'Barrio   
+            Ficha.SetValorRespuestaUnica("V06", Reader("V06"))  'Region
+            ' =================================================
+            Dim ASqlConn As SqlConnection = GetConnection()
+            Dim ACommand As New SqlCommand("AmenazasPorViviendaPorFicha", ASqlConn)
+            ACommand.Parameters.AddWithValue("@CodigoFSU", IdFicha)
+            ACommand.Parameters.AddWithValue("@IdVivienda", Reader("IdVivienda"))
+            ACommand.CommandType = CommandType.StoredProcedure
+            Dim AReader As SqlDataReader
+            AReader = ACommand.ExecuteReader
+            While AReader.Read
+                Ficha.AddValorRespuestaMultiple("V11", AReader("v11"))
+            End While
+            AReader.Close()
+            ASqlConn.Close()
             Ficha.SetValorRespuestaUnica("H1", Reader("H1"))
             Ficha.SetValorRespuestaUnica("H2_Hombres", Reader("H2_Hombres"))
             Ficha.SetValorRespuestaUnica("H2_Mujeres", Reader("H2_Mujeres"))
@@ -248,6 +459,85 @@ Public Class CalculadoraIndicadores
         Dim ListaFichas As New ArrayList
         While Reader.Read
             Ficha = New FichaSU(IdFicha, Reader("IdVivienda"), "M", Reader("IdHogar"), Reader("IdMiembro"))
+            'Datos de Vivienda - Encabezado
+            Ficha.SetValorRespuestaUnica("V1", Reader("v1"))
+            Ficha.SetValorRespuestaUnica("V2", Reader("v2"))
+            Ficha.SetValorRespuestaUnica("V3", Reader("v3"))
+            Ficha.SetValorRespuestaUnica("V4", Reader("v4"))
+            Ficha.SetValorRespuestaUnica("V5", Reader("v5"))
+            Ficha.SetValorRespuestaUnica("V6", Reader("v6"))
+            Ficha.SetValorRespuestaUnica("V7", Reader("v7"))
+            Ficha.SetValorRespuestaUnica("V8", Reader("v8"))
+            Ficha.SetValorRespuestaUnica("V8_Pago", Reader("v8_Pago"))
+            Ficha.SetValorRespuestaUnica("V9", Reader("v9"))
+            Ficha.SetValorRespuestaUnica("V10", Reader("v10"))
+            Ficha.SetValorRespuestaUnica("V12", Reader("v12"))
+            'Valores Desagregación por Ubicación Geográfica
+            Ficha.SetValorRespuestaUnica("V01", Reader("V01"))  'Departamento
+            Ficha.SetValorRespuestaUnica("V02", Reader("V02"))  'Municipio
+            Ficha.SetValorRespuestaUnica("V03", Reader("V03"))  'Aldea    
+            Ficha.SetValorRespuestaUnica("V04", Reader("V04"))  'Caserio  
+            Ficha.SetValorRespuestaUnica("V05", Reader("V05"))  'Barrio   
+            Ficha.SetValorRespuestaUnica("V06", Reader("V06"))  'Region
+            ' =================================================
+            Dim ASqlConn As SqlConnection = GetConnection()
+            Dim ACommand As New SqlCommand("AmenazasPorViviendaPorFicha", ASqlConn)
+            ACommand.Parameters.AddWithValue("@CodigoFSU", IdFicha)
+            ACommand.Parameters.AddWithValue("@IdVivienda", Reader("IdVivienda"))
+            ACommand.CommandType = CommandType.StoredProcedure
+            Dim AReader As SqlDataReader
+            AReader = ACommand.ExecuteReader
+            While AReader.Read
+                Ficha.AddValorRespuestaMultiple("V11", AReader("v11"))
+            End While
+            AReader.Close()
+            ASqlConn.Close()
+            Ficha.SetValorRespuestaUnica("H1", Reader("H1"))
+            Ficha.SetValorRespuestaUnica("H2_Hombres", Reader("H2_Hombres"))
+            Ficha.SetValorRespuestaUnica("H2_Mujeres", Reader("H2_Mujeres"))
+            Ficha.SetValorRespuestaUnica("H2_Total", Reader("H2_Total"))
+            Ficha.SetValorRespuestaUnica("H3", Reader("H3"))
+            Ficha.SetValorRespuestaUnica("H6", Reader("H6"))
+            'Ficha.SetValorRespuestaUnica("H7", Reader("H7"))
+            Ficha.SetValorRespuestaUnica("H8", Reader("H8"))
+            Ficha.SetValorRespuestaUnica("H8_Estud", Reader("H8_Estud"))
+            Ficha.SetValorRespuestaUnica("H9_Bus", Reader("H9_Bus"))
+            Ficha.SetValorRespuestaUnica("H9_Taxi", Reader("H9_Taxi"))
+            Ficha.SetValorRespuestaUnica("H10", Reader("H10"))
+
+            Dim SqlConn2 As SqlConnection = GetConnection()
+            Dim Command2 As New SqlCommand("OrganizacionesComunitariasPorHogar", SqlConn2)
+            Command2.Parameters.AddWithValue("@IdHogar", Reader("IdHogar"))
+            Command2.CommandType = CommandType.StoredProcedure
+            Dim Reader2 As SqlDataReader
+            Reader2 = Command2.ExecuteReader
+            While Reader2.Read
+                Ficha.AddValorRespuestaMultiple("H4", Reader2("H4"))
+            End While
+            Reader2.Close()
+            SqlConn2.Close()
+
+            SqlConn2 = GetConnection()
+            Command2 = New SqlCommand("BienesPorHogar", SqlConn2)
+            Command2.Parameters.AddWithValue("@IdHogar", Reader("IdHogar"))
+            Command2.CommandType = CommandType.StoredProcedure
+            Reader2 = Command2.ExecuteReader
+            While Reader2.Read
+                Ficha.AddValorRespuestaMultiple("H5", Reader2("H5"))
+            End While
+            Reader2.Close()
+            SqlConn2.Close()
+
+            SqlConn2 = GetConnection()
+            Command2 = New SqlCommand("ServiciosFinancierosPorHogar", SqlConn2)
+            Command2.Parameters.AddWithValue("@IdHogar", Reader("IdHogar"))
+            Command2.CommandType = CommandType.StoredProcedure
+            Reader2 = Command2.ExecuteReader
+            While Reader2.Read
+                Ficha.AddValorRespuestaMultiple("H11", Reader2("H11"))
+            End While
+            Reader2.Close()
+            SqlConn2.Close()
             Ficha.SetValorRespuestaUnica("P5", Reader("P5"))
             Ficha.SetValorRespuestaUnica("P8", Reader("P8"))
             Ficha.SetValorRespuestaUnica("P9", Reader("P9"))
@@ -263,27 +553,27 @@ Public Class CalculadoraIndicadores
             Ficha.SetValorRespuestaUnica("P17", Reader("P17"))
             Ficha.SetValorRespuestaUnica("P18", Reader("P18"))
             Ficha.SetValorRespuestaUnica("P19", Reader("P19"))
-            Dim SqlConn2 As SqlConnection = GetConnection()
-            Dim Command2 As New SqlCommand("DiscapacidadesPorMiembro", SqlConn2)
-            Command2.Parameters.AddWithValue("@IdMiembro", Reader("IdMiembro"))
-            Command2.CommandType = CommandType.StoredProcedure
-            Dim Reader2 As SqlDataReader
-            Reader2 = Command2.ExecuteReader
-            While Reader2.Read
-                Ficha.AddValorRespuestaMultiple("P20", Reader2("P20"))
+            Dim SqlConn3 As SqlConnection = GetConnection()
+            Dim Command3 As New SqlCommand("DiscapacidadesPorMiembro", SqlConn3)
+            Command3.Parameters.AddWithValue("@IdMiembro", Reader("IdMiembro"))
+            Command3.CommandType = CommandType.StoredProcedure
+            Dim Reader3 As SqlDataReader
+            Reader3 = Command3.ExecuteReader
+            While Reader3.Read
+                Ficha.AddValorRespuestaMultiple("P20", Reader3("P20"))
             End While
-            Reader2.Close()
-            SqlConn2.Close()
-            SqlConn2 = GetConnection()
-            Command2 = New SqlCommand("ProgramasSocialesPorMiembro", SqlConn2)
-            Command2.Parameters.AddWithValue("@IdMiembro", Reader("IdMiembro"))
-            Command2.CommandType = CommandType.StoredProcedure
-            Reader2 = Command2.ExecuteReader
-            While Reader2.Read
-                Ficha.AddValorRespuestaMultiple("P21", Reader2("P21"))
+            Reader3.Close()
+            SqlConn3.Close()
+            SqlConn3 = GetConnection()
+            Command3 = New SqlCommand("ProgramasSocialesPorMiembro", SqlConn3)
+            Command3.Parameters.AddWithValue("@IdMiembro", Reader("IdMiembro"))
+            Command3.CommandType = CommandType.StoredProcedure
+            Reader3 = Command3.ExecuteReader
+            While Reader3.Read
+                Ficha.AddValorRespuestaMultiple("P21", Reader3("P21"))
             End While
-            Reader2.Close()
-            SqlConn2.Close()
+            Reader3.Close()
+            SqlConn3.Close()
             ListaFichas.Add(Ficha)
 
         End While

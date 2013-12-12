@@ -40,6 +40,37 @@
     Public Function GetValoresRespuestaMultiple(ByVal Pregunta As String) As ArrayList
         Return ValoresRespuestasMultiples(Pregunta)
     End Function
+    Public Function GetUbicacionGeografica() As VariablesDesagregadas
+        Dim Ubicacion As New VariablesDesagregadas
+        Ubicacion.IdDepartamento = ValoresRespuestasUnicas("V01")
+        Ubicacion.IdMunicipio = ValoresRespuestasUnicas("V02")
+        Ubicacion.IdAldea = ValoresRespuestasUnicas("V03")
+        Ubicacion.IdCaserio = ValoresRespuestasUnicas("V04")
+        Ubicacion.IdBarrio = ValoresRespuestasUnicas("V05")
+        Ubicacion.IdRegion = GetValorRespuestaUnica("V06")
+        Return Ubicacion
+    End Function
+    Public Function GetDepartamento() As VariableDepartamento
+        Dim VarDepto As New VariableDepartamento
+        VarDepto.Departamento = ValoresRespuestasUnicas("V01")
+        Return VarDepto
+    End Function
+    Public Function GetDepartamentoMunicipio() As VariableDepartamentoMunicipio
+        Dim VarDeptoMuni As New VariableDepartamentoMunicipio
+        VarDeptoMuni.Departamento = ValoresRespuestasUnicas("V01")
+        VarDeptoMuni.Municipio = ValoresRespuestasUnicas("V02")
+        Return VarDeptoMuni
+    End Function
+    Public Function GetSexo() As VariableSexo
+        Dim VarSexo As VariableSexo
+        If ValoresRespuestasUnicas.ContainsKey("P9") Then
+            VarSexo = New VariableSexo
+            VarSexo.Sexo = ValoresRespuestasUnicas("P9")
+        Else
+            VarSexo = Nothing
+        End If
+        Return VarSexo
+    End Function
     Public Sub PrintAllValues()
         Dim SingleValuePair As KeyValuePair(Of String, Integer)
         For Each SingleValuePair In ValoresRespuestasUnicas
