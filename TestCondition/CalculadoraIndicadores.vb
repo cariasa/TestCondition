@@ -26,6 +26,7 @@ Public Class CalculadoraIndicadores
         VariablesConditions = GetConditionsFromFormulas(Formulas)
         'Para pruebas se barrerán las fichas provistas, ignorando el levantamiento
         Dim ListFichasID As ArrayList
+        ' OJO ESTE DEBE RECIBIR IdLevantamiento
         ListFichasID = GetFichasLevantamiento(50)
         'Dim ListFichas As New ArrayList
         'Agrega todas las fichas del levantamiento a ListFichas
