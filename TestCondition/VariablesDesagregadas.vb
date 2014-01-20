@@ -66,10 +66,10 @@
 End Class
 Public Class UbicacionComparer
     Implements Generic.IEqualityComparer(Of VariablesDesagregadas)
-    Public Overloads Function Equals(a As VariablesDesagregadas, b As VariablesDesagregadas) As Boolean Implements System.Collections.Generic.IEqualityComparer(Of TestCondition.VariablesDesagregadas).Equals
+    Public Overloads Function Equals(a As VariablesDesagregadas, b As VariablesDesagregadas) As Boolean Implements System.Collections.Generic.IEqualityComparer(Of VariablesDesagregadas).Equals
         Return a.IdAldea = b.IdAldea And b.IdBarrio = a.IdBarrio And a.IdCaserio = b.IdCaserio And a.IdDepartamento = b.IdDepartamento And a.IdMunicipio = b.IdMunicipio And a.IdRegion = b.IdRegion And a.Variable.Equals(b.Variable)
     End Function
-    Public Overloads Function GetHashCode(obj As VariablesDesagregadas) As Integer Implements System.Collections.Generic.IEqualityComparer(Of TestCondition.VariablesDesagregadas).GetHashCode
+    Public Overloads Function GetHashCode(obj As VariablesDesagregadas) As Integer Implements System.Collections.Generic.IEqualityComparer(Of VariablesDesagregadas).GetHashCode
         Return obj.IdDepartamento Xor obj.IdMunicipio Xor obj.IdAldea Xor obj.IdCaserio Xor obj.IdRegion Xor obj.IdBarrio Xor obj.Variable.GetHashCode
     End Function
 End Class

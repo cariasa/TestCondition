@@ -1,4 +1,6 @@
 ﻿Public Class ConditionTreeNode
+    Private EsTotal As Boolean
+    'Verifica si la condición es de una variable que cuenta el total, suma la muestra
     Private NodeLevel As Char
     'NodeLevel determina qué nivel de ficha es necesario recuperar para FSU: V vivienda, H Hogar, M Miembros
     Private NodeType As Char
@@ -29,6 +31,14 @@
         End Get
         Set(ByVal value As Char)
             NodeLevel = value
+        End Set
+    End Property
+    Public Property Total As Boolean
+        Get
+            Return EsTotal
+        End Get
+        Set(value As Boolean)
+            EsTotal = value
         End Set
     End Property
 
@@ -101,6 +111,9 @@
     End Sub
     'Hay que pasar como parametro la Ficha y el Instrumento de Evaluación a verificar
     Public Function Evaluate(ByRef FSU As FichaSU) As Boolean
+        If LogicalOperation = "T" And EsTotal Then
+            Return True
+        End If
         If NodeType = "C" Then
             Dim opLeft, opRight As Boolean
             opLeft = Left.Evaluate(FSU)
@@ -111,53 +124,76 @@
                 Return opLeft Or opRight
             End If
         Else
-            If Source = "FSU" Then
+            If Source = "FSU" Or Source = "IE" Then
                 'Se verifica SourceQName para sacar el campo que viene de FSU
                 'Luego se ve si el valor del campo que viene de FSU tiene el valor guardado en QValues de ser así
                 'retorna true, de lo contrario false
-                Dim Respuesta As Integer
-                Respuesta = FSU.GetValorRespuestaUnica(SourceQName)
-                'QOperation = {=, <, <=, >, >=, C}
-                If QOperation = "=" Then
-                    If Convert.ToUInt64(QValues) = Respuesta Then
-                        Return True
+                If FSU.CheckRespuestaUnica(SourceQName) Then
+                    Dim Respuesta As Integer
+                    Respuesta = FSU.GetValorRespuestaUnica(SourceQName)
+
+                    'QOperation = {=, <, <=, >, >=, C}
+                    If QOperation = "=" Then
+                        If Convert.ToUInt64(QValues) = Respuesta Then
+                            Return True
+                        Else
+                            Return False
+                        End If
+                    ElseIf QOperation = "<" Then
+                        If Respuesta < Convert.ToUInt64(QValues) Then
+                            Return True
+                        Else
+                            Return False
+                        End If
+                    ElseIf QOperation = "<=" Then
+                        If Respuesta <= Convert.ToUInt64(QValues) Then
+                            Return True
+                        Else
+                            Return False
+                        End If
+                    ElseIf QOperation = ">" Then
+                        If Respuesta > Convert.ToUInt64(QValues) Then
+                            Return True
+                        Else
+                            Return False
+                        End If
+                    ElseIf QOperation = ">=" Then
+                        If Respuesta >= Convert.ToUInt64(QValues) Then
+                            Return True
+                        Else
+                            Return False
+                        End If
                     Else
+                        Dim values As String()
+                        values = QValues.Split(Separator)
+                        For Each v In values
+                            If Convert.ToInt64(v) = Respuesta Then
+                                Return True
+                            End If
+                        Next
                         Return False
                     End If
-                ElseIf QOperation = "<" Then
-                    If Respuesta < Convert.ToUInt64(QValues) Then
-                        Return True
+                ElseIf FSU.CheckRespuestaMultiple(SourceQName) Then
+                    'Si es una respuesta múltiple, en la lista separada por comas deben de venir los valores para retornar true
+                    Dim Respuestas As ArrayList = FSU.GetValoresRespuestaMultiple(SourceQName)
+                    If QOperation = "C" Then
+                        Dim values As String()
+                        values = QValues.Split(Separator)
+                        For Each Respuesta As Integer In Respuestas
+                            For Each v In values
+                                If Convert.ToInt64(v) = Respuesta Then
+                                    Return True
+                                End If
+                            Next
+                        Next
+                        Return False 'Ninguno de los valores esperados está en la lista de respuestas
                     Else
-                        Return False
-                    End If
-                ElseIf QOperation = "<=" Then
-                    If Respuesta <= Convert.ToUInt64(QValues) Then
-                        Return True
-                    Else
-                        Return False
-                    End If
-                ElseIf QOperation = ">" Then
-                    If Respuesta > Convert.ToUInt64(QValues) Then
-                        Return True
-                    Else
-                        Return False
-                    End If
-                ElseIf QOperation = ">=" Then
-                    If Respuesta >= Convert.ToUInt64(QValues) Then
-                        Return True
-                    Else
-                        Return False
+                        Return False 'No usó el operador adecuado para preguntas de selección múltiple
                     End If
                 Else
-                    Dim values As String()
-                    values = QValues.Split(Separator)
-                    For Each v In values
-                        If Convert.ToInt64(v) = Respuesta Then
-                            Return True
-                        End If
-                    Next
-                    Return False
+                    Return False 'No se encontró la pregunta en las preguntas definidas
                 End If
+
             Else
                 'Parecido al anterior pero se verifica el Instrumento de Evaluacion IE
             End If
