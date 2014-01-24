@@ -36,7 +36,7 @@ Public Class CalculadoraIndicadores
     Private InsertValoresSexo As String = "INSERT INTO ValoresSexo " _
                                & "(IdAplicacionInstrumento, IdIndicadorEvaluacionPorPrograma, IdSexo, Valor, CreadoPor) " _
                                & "VALUES (@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdSexo,@Valor,@CreadoPor)"
-    Private QueryUsaFSU As String = "SELECT UsaFSU FROM AplicacionInstrumento WHHERE IdAplicacionInstrumento=@IdLevantamiento"
+    Private QueryUsaFSU As String = "SELECT UsaFSU FROM AplicacionInstrumento WHERE IdAplicacionInstrumento=@IdLevantamiento"
     Private IdPrograma As Integer
     Private IdLevantamiento As Integer
     Private UsaFSU As Boolean
@@ -82,6 +82,12 @@ Public Class CalculadoraIndicadores
             Dim VariableMuniAcum As New Dictionary(Of VariableDepartamentoMunicipio, Double)(New VariableDepartamentoMunicipioComparer)
             Dim VariableSexoAcum As New Dictionary(Of VariableSexo, Double)(New VariableSexoComparer)
             For Each f As ParFSU_IE In ListFichasID
+
+                'Ahora hay información de IdVivienda, IdHogar, IdMiembro en ParFSU_IE... los IE son todos de población o pueden ser de hogar?
+                'Habrá cálculo de indicadores sin que haya IE?
+                'Se combinarán datos de fsu con ie?
+
+
                 'Recuperar parte Instrumento de Evaluacion
                 Dim FichaIE As FichaSU = RetrieveSingleFichaIE(f.CodigoIE)
                 'Recuperar la parte vivienda de la ficha UNA INSTANCIA
@@ -851,7 +857,7 @@ Public Class CalculadoraIndicadores
         Dim Reader As SqlDataReader = Command.ExecuteReader
         Dim List As New ArrayList
         While Reader.Read
-            Dim Ficha As New ParFSU_IE(Reader("CodigoFSU"), Reader("IdEncabezadoRespuesta"))
+            Dim Ficha As New ParFSU_IE(Reader("CodigoFSU"), Reader("IdVivienda"), Reader("IdHogar"), Reader("IdMiembro"), Reader("IdEncabezadoRespuesta"))
             List.Add(Ficha)
         End While
         Reader.Close()
@@ -906,7 +912,7 @@ Public Class CalculadoraIndicadores
         Command.Parameters.AddWithValue("@IdEncabezadoRespuesta", CodigoIE)
         Dim Reader As SqlDataReader = Command.ExecuteReader
         While Reader.Read
-            Dim TipoPregunta As Integer = Reader("IdTipoPregunta")
+            Dim TipoPregunta As Integer = Reader("IdTipoDePregunta")
             If TipoPregunta = 4 Or TipoPregunta = 6 Or TipoPregunta = 7 Then
                 Ficha.SetValorRespuestaUnica(Reader("IdAmigable"), Reader("Valor"))
             Else
