@@ -417,8 +417,7 @@ Public Class CalculadoraIndicadores
                     den = 0
                 End If
                 If den = 0 Then
-                    Console.WriteLine("Algo anda mal, el denominador quedó en cero, no hay muestra")
-                    res = 0
+                    res = -1 ' Indica que no se calculó el indicador. Tal vez no habían datos para calcular
                 Else
                     res = num / den
                 End If
