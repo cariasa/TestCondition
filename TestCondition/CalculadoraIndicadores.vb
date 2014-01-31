@@ -59,6 +59,8 @@ Public Class CalculadoraIndicadores
 
     Sub Run(ByVal CreadoPor As String)
         If (UsaFSU) Then 'Cuando se usa la Ficha Socioeconómica Única
+            'De acuerdo con conversación con Mónica Mairena, no se combinarán los valores recolectados desde la FSU al IE, por lo tanto
+            'se ignorará el IE de haber alguno
             Dim Formulas As ArrayList
             Formulas = GetFormulasFromPrograma(IdPrograma)
             Dim VariablesConditions As Dictionary(Of String, ConditionTreeNode)
@@ -67,12 +69,6 @@ Public Class CalculadoraIndicadores
             Dim ListFichasID As ArrayList
             ' OJO ESTE DEBE RECIBIR IdLevantamiento ****************************************************************************************
             ListFichasID = GetFichasLevantamiento(IdLevantamiento)
-            'Dim ListFichas As New ArrayList
-            'Agrega todas las fichas del levantamiento a ListFichas
-            'Ya no vamos a traer todas las fichas, las vamos a recuperar de una en una
-            'For Each f As ParFSU_IE In ListFichasID
-            '    ListFichas.AddRange(RetrieveSingleFichaAllMembers(f.CodigoFSU))
-            'Next
             'Verificar cuál es el niveles de recuperación de fichas necesarios, hay que traer todos los necesarios
             Dim VarTreePair As KeyValuePair(Of String, ConditionTreeNode)
 
@@ -89,7 +85,19 @@ Public Class CalculadoraIndicadores
 
 
                 'Recuperar parte Instrumento de Evaluacion
-                Dim FichaIE As FichaSU = RetrieveSingleFichaIE(f.CodigoIE)
+                'En el caso de que se quisiera algún día integrar fórmulas basadas en FSU e IE en un indicador habría que:
+                ' 1. Recuperar las fichas de IE
+                '       Dim FichaIE As FichaSU = RetrieveSingleFichaIE(f.CodigoIE)
+                ' 2. Integrar estas fichas con las FSU recuperadas, la dificultad en este caso es la asociación de las fichas IE a nivel de población de la FSU
+                '    se están dejando anclas en los campos IdVivienda, IdHogar, IdMiembro en la tabla suepps.EncabezadoRespuesta, estos campos deberán estar apropiadamente
+                '    llenados para poder integrar bien cada FSU con cada IE
+                '       A cada una de las fichas de la lista agregar la parte de IE
+                '       For Each Ficha As FichaSU In ListaFichas
+                '           Ficha.MergeFSUWithIE(FichaIE)
+                '       Next
+                ' 3. Hay que tener el cuidado que si se usa IE, hay que cargar el nivel de Miembros (Población) de la FSU, sólo hay un caso a la fecha (Ene/2014) que la IE no trabaje
+                '    a nivel de población: que aplica a vivienda, condiciones de pared y techo.
+
                 'Recuperar la parte vivienda de la ficha UNA INSTANCIA
                 Dim FichaVivienda As FichaSU = RetrieveSingleFichaForVivienda(f.CodigoFSU)
                 'Recuperar los hogares de la ficha       UNA LISTA
@@ -113,11 +121,6 @@ Public Class CalculadoraIndicadores
                         ListaFichas = FichasMiembros
                         VariablePoblacion = True
                     End If
-                    ' A cada una de las fichas de la lista agregar la parte de IE
-                    For Each Ficha As FichaSU In ListaFichas
-                        Ficha.MergeFSUWithIE(FichaIE)
-                    Next
-                    ' Hay que verificar si hay lista de FSU, pues puede venir la IE sola la verificación se hace arriba.
                     For Each Ficha As FichaSU In ListaFichas
                         Dim VarDepto As VariableDepartamento = Ficha.GetDepartamento
                         VarDepto.Variable = VarTreePair.Key
@@ -371,17 +374,9 @@ Public Class CalculadoraIndicadores
             Formulas = GetFormulasFromPrograma(IdPrograma)
             Dim VariablesConditions As Dictionary(Of String, ConditionTreeNode)
             VariablesConditions = GetConditionsFromFormulas(Formulas)
-            'Para pruebas se barrerán las fichas provistas, ignorando el levantamiento
             Dim ListFichasID As ArrayList
             ' OJO ESTE DEBE RECIBIR IdLevantamiento *****************************************************************************************
             ListFichasID = GetFichasLevantamiento(IdLevantamiento)
-            'Dim ListFichas As New ArrayList
-            'Agrega todas las fichas del levantamiento a ListFichas
-            'Ya no vamos a traer todas las fichas, las vamos a recuperar de una en una
-            'For Each f As ParFSU_IE In ListFichasID
-            '    ListFichas.AddRange(RetrieveSingleFichaAllMembers(f.CodigoFSU))
-            'Next
-            'Verificar cuál es el niveles de recuperación de fichas necesarios, hay que traer todos los necesarios
             Dim VarTreePair As KeyValuePair(Of String, ConditionTreeNode)
 
             'Acá se almacenarán todos los valores
@@ -400,7 +395,10 @@ Public Class CalculadoraIndicadores
                 Next
             Next
             Dim SqlConn As SqlConnection = GetConnection()
-
+            ' NO se está desagregando en este nivel, pues no se sabe cuál es el campo de ubicación geográfica (Departamento, Municipio), ya que la encuesta fue creada
+            ' dinámicamente
+            ' Se podría sacar de la FSU si estuviera asociada, pero no lo está ya que se especifica que no usa FSU
+            ' Para poder desagregar, se puede usar la tabla de pivoteo, recuperando los datos completos.
             For Each Formula As FormulaIndicador In Formulas
                 Dim Command As New SqlCommand("InsertarValoresIndicadores", SqlConn)
                 Dim num As Double
@@ -458,7 +456,7 @@ Public Class CalculadoraIndicadores
         Command.CommandType = CommandType.StoredProcedure
         Dim Reader As SqlDataReader
         Reader = Command.ExecuteReader
-        Dim Ficha As FichaSU
+        Dim Ficha As FichaSU = Nothing
         While Reader.Read
             Ficha = New FichaSU(IdFicha, Reader("IdVivienda"), "V")
             Ficha.SetValorRespuestaUnica("V1", Reader("v1"))
