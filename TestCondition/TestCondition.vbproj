@@ -84,7 +84,11 @@
     <Compile Include="CalculadoraIndicadores.vb" />
     <Compile Include="Condicion.vb" />
     <Compile Include="ConditionTreeNode.vb" />
+    <Compile Include="Ficha.vb" />
+    <Compile Include="FichaHogar.vb" />
+    <Compile Include="FichaMiembro.vb" />
     <Compile Include="FichaSU.vb" />
+    <Compile Include="FichaVivienda.vb" />
     <Compile Include="FormulaIndicador.vb" />
     <Compile Include="MainModule.vb" />
     <Compile Include="My Project\AssemblyInfo.vb" />

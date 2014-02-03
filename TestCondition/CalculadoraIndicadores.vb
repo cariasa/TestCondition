@@ -77,33 +77,12 @@ Public Class CalculadoraIndicadores
             Dim VariableDeptoAcum As New Dictionary(Of VariableDepartamento, Double)(New VariableDepartamentoComparer)
             Dim VariableMuniAcum As New Dictionary(Of VariableDepartamentoMunicipio, Double)(New VariableDepartamentoMunicipioComparer)
             Dim VariableSexoAcum As New Dictionary(Of VariableSexo, Double)(New VariableSexoComparer)
+            ' Tiempo o espacio de memoria, se ahorra tiempo si se traen todas las fichas: pero habrá que usar más memoria, se ahorra memoria si se trae ficha por ficha dependiendo 
+            ' de la variable que se evalúa, o sea se trae la parte vivienda o la parte hogar, o la parte miembro de la ficha dependiendo de la variable.
+
             For Each f As ParFSU_IE In ListFichasID
+                Dim Ficha As New Ficha(f.CodigoFSU, ConnectionString)
 
-                'Ahora hay información de IdVivienda, IdHogar, IdMiembro en ParFSU_IE... los IE son todos de población o pueden ser de hogar?
-                'Habrá cálculo de indicadores sin que haya IE?
-                'Se combinarán datos de fsu con ie?
-
-
-                'Recuperar parte Instrumento de Evaluacion
-                'En el caso de que se quisiera algún día integrar fórmulas basadas en FSU e IE en un indicador habría que:
-                ' 1. Recuperar las fichas de IE
-                '       Dim FichaIE As FichaSU = RetrieveSingleFichaIE(f.CodigoIE)
-                ' 2. Integrar estas fichas con las FSU recuperadas, la dificultad en este caso es la asociación de las fichas IE a nivel de población de la FSU
-                '    se están dejando anclas en los campos IdVivienda, IdHogar, IdMiembro en la tabla suepps.EncabezadoRespuesta, estos campos deberán estar apropiadamente
-                '    llenados para poder integrar bien cada FSU con cada IE
-                '       A cada una de las fichas de la lista agregar la parte de IE
-                '       For Each Ficha As FichaSU In ListaFichas
-                '           Ficha.MergeFSUWithIE(FichaIE)
-                '       Next
-                ' 3. Hay que tener el cuidado que si se usa IE, hay que cargar el nivel de Miembros (Población) de la FSU, sólo hay un caso a la fecha (Ene/2014) que la IE no trabaje
-                '    a nivel de población: que aplica a vivienda, condiciones de pared y techo.
-
-                'Recuperar la parte vivienda de la ficha UNA INSTANCIA
-                Dim FichaVivienda As FichaSU = RetrieveSingleFichaForVivienda(f.CodigoFSU)
-                'Recuperar los hogares de la ficha       UNA LISTA
-                Dim FichasHogares As ArrayList = RetrieveSingleFichaAllHogares(f.CodigoFSU)
-                'Recuperar los miembros de la ficha      UNA LISTA
-                Dim FichasMiembros As ArrayList = RetrieveSingleFichaAllMembers(f.CodigoFSU)
                 Dim VariablePoblacion As Boolean
                 For Each VarTreePair In VariablesConditions
                     'Si la Condicion, en la raiz tiene el nivel máximo, que se ve es de vivienda entonces usar la de vivienda
@@ -111,16 +90,16 @@ Public Class CalculadoraIndicadores
                     'Si la Condicion, en la raiz tiene el nivel máximo, que se ve es de miembro hacer por cada miembro
                     Dim ListaFichas As ArrayList
                     If VarTreePair.Value.Level = "V" Then
-                        ListaFichas = New ArrayList
-                        ListaFichas.Add(FichaVivienda)
-                        VariablePoblacion = False
+
                     ElseIf VarTreePair.Value.Level = "H" Then
-                        ListaFichas = FichasHogares
-                        VariablePoblacion = False
+
                     Else
-                        ListaFichas = FichasMiembros
-                        VariablePoblacion = True
+
                     End If
+
+                    'ACA me quedo domingo 2 de febrero, lo que falta es que dependiendo de la variable que se quiera calcular se tome la parte vivienda, o las partes hogar o miembros
+                    'si es vivienda, solo toma una vez, si es hogar o miembro toma tantas como haya, si es miembro en especial es por cada hogar, y luego por cada miembro
+
                     For Each Ficha As FichaSU In ListaFichas
                         Dim VarDepto As VariableDepartamento = Ficha.GetDepartamento
                         VarDepto.Variable = VarTreePair.Key
