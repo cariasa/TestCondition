@@ -1,9 +1,9 @@
 ﻿
-Public Class FichaVivienda
+Public Class FichaVivienda : Implements FichaInterface
     Private ValoresRespuestasUnicas As Dictionary(Of String, Integer)
     Private ValoresRespuestasMultiples As Dictionary(Of String, ArrayList)
     Private HogaresEnVivienda As ArrayList
-    
+
     Private _IdVivienda As Integer
     Public Property IdVivienda() As Integer
         Get
@@ -36,18 +36,19 @@ Public Class FichaVivienda
     Public Sub SetHogares(ByRef Hogares As ArrayList)
         HogaresEnVivienda = Hogares
     End Sub
-    Public Function GetValorRespuestaUnica(ByVal Pregunta As String) As Integer
+    Public Function GetValorRespuestaUnica(ByVal Pregunta As String) As Integer Implements FichaInterface.GetValorRespuestaUnica
         Return ValoresRespuestasUnicas(Pregunta)
     End Function
-    Public Function CheckRespuestaUnica(ByVal Pregunta As String) As Boolean
+    Public Function CheckRespuestaUnica(ByVal Pregunta As String) As Boolean Implements FichaInterface.CheckRespuestaUnica
         Return ValoresRespuestasUnicas.ContainsKey(Pregunta)
     End Function
-    Public Function GetValoresRespuestaMultiple(ByVal Pregunta As String) As ArrayList
+    Public Function GetValoresRespuestaMultiple(ByVal Pregunta As String) As ArrayList Implements FichaInterface.GetValoresRespuestaMultiple
         Return ValoresRespuestasMultiples(Pregunta)
     End Function
-    Public Function CheckRespuestaMultiple(ByVal Pregunta As String) As Boolean
+    Public Function CheckRespuestaMultiple(ByVal Pregunta As String) As Boolean Implements FichaInterface.CheckRespuestaMultiple
         Return ValoresRespuestasMultiples.ContainsKey(Pregunta)
     End Function
+
     Public Function GetUbicacionGeografica() As VariablesDesagregadas
         Dim Ubicacion As New VariablesDesagregadas
         Ubicacion.IdDepartamento = ValoresRespuestasUnicas("V01")

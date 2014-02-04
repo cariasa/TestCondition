@@ -175,6 +175,18 @@ Public Class Ficha
             Hogar.SetMiembros(ListaMiembros)
         Next
     End Sub
+    Public Function GetDepartamento() As VariableDepartamento
+        Dim VarDepto As New VariableDepartamento
+        VarDepto.Departamento = Ficha.GetValorRespuestaUnica("V01")
+        Return VarDepto
+    End Function
+    Public Function GetDepartamentoMunicipio() As VariableDepartamentoMunicipio
+        Dim VarDeptoMuni As New VariableDepartamentoMunicipio
+        VarDeptoMuni.Departamento = Ficha.GetValorRespuestaUnica("V01")
+        VarDeptoMuni.Municipio = Ficha.GetValorRespuestaUnica("V02")
+        Return VarDeptoMuni
+    End Function
+    
     Public Sub PrintFullFicha()
         Console.WriteLine("Id Ficha = " + IdFicha.ToString)
         Console.WriteLine("--------------------------------------------------------------------------------------------")

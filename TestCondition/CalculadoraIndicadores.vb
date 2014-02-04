@@ -88,29 +88,14 @@ Public Class CalculadoraIndicadores
                     'Si la Condicion, en la raiz tiene el nivel máximo, que se ve es de vivienda entonces usar la de vivienda
                     'Si la Condicion, en la raiz tiene el nivel máximo, que se ve es de hogar hacer por cada hogar
                     'Si la Condicion, en la raiz tiene el nivel máximo, que se ve es de miembro hacer por cada miembro
-                    Dim ListaFichas As ArrayList
+
+                    Dim VarDepto As VariableDepartamento = Ficha.GetDepartamento
+                    VarDepto.Variable = VarTreePair.Key
+                    Dim VarDeptoMuni As VariableDepartamentoMunicipio = Ficha.GetDepartamentoMunicipio
+                    VarDeptoMuni.Variable = VarTreePair.Key
+
                     If VarTreePair.Value.Level = "V" Then
-
-                    ElseIf VarTreePair.Value.Level = "H" Then
-
-                    Else
-
-                    End If
-
-                    'ACA me quedo domingo 2 de febrero, lo que falta es que dependiendo de la variable que se quiera calcular se tome la parte vivienda, o las partes hogar o miembros
-                    'si es vivienda, solo toma una vez, si es hogar o miembro toma tantas como haya, si es miembro en especial es por cada hogar, y luego por cada miembro
-
-                    For Each Ficha As FichaSU In ListaFichas
-                        Dim VarDepto As VariableDepartamento = Ficha.GetDepartamento
-                        VarDepto.Variable = VarTreePair.Key
-                        Dim VarDeptoMuni As VariableDepartamentoMunicipio = Ficha.GetDepartamentoMunicipio
-                        VarDeptoMuni.Variable = VarTreePair.Key
-                        Dim VarSexo As VariableSexo
-                        If VariablePoblacion Then
-                            VarSexo = Ficha.GetSexo
-                            VarSexo.Variable = VarTreePair.Key
-                        End If
-                        If VarTreePair.Value.Evaluate(Ficha) Then
+                        If VarTreePair.Value.Evaluate(Ficha.GetFichaVivienda) Then
                             'Desagregacion por Ubicacion Geográfica
                             If VariableDeptoAcum.ContainsKey(VarDepto) Then
                                 VariableDeptoAcum(VarDepto) = VariableDeptoAcum(VarDepto) + 1
@@ -123,30 +108,78 @@ Public Class CalculadoraIndicadores
                                 VariableMuniAcum(VarDeptoMuni) = 1
                             End If
                             '=========================================================
-                            'Desagregacion por Sexo
-                            If VariablePoblacion Then
-                                If VariableSexoAcum.ContainsKey(VarSexo) Then
-                                    VariableSexoAcum(VarSexo) = VariableSexoAcum(VarSexo) + 1
-                                Else
-                                    VariableSexoAcum(VarSexo) = 1
-                                End If
-                            End If
-                            '=========================================================
                             If VariableAcum.ContainsKey(VarTreePair.Key) Then
                                 VariableAcum(VarTreePair.Key) = VariableAcum(VarTreePair.Key) + 1
                             Else
                                 VariableAcum(VarTreePair.Key) = 1
                             End If
                         End If
-                        'Console.WriteLine(VarTreePair.Key)
-                        'VarTreePair.Value.PrintTree()
-                    Next
+                    ElseIf VarTreePair.Value.Level = "H" Then
+                        Dim Hogares As ArrayList = Ficha.GetFichaVivienda.GetHogaresEnVivienda
+                        For Each Hogar As FichaHogar In Hogares
+                            If VarTreePair.Value.Evaluate(Ficha.GetFichaVivienda) Then
+                                'Desagregacion por Ubicacion Geográfica
+                                If VariableDeptoAcum.ContainsKey(VarDepto) Then
+                                    VariableDeptoAcum(VarDepto) = VariableDeptoAcum(VarDepto) + 1
+                                Else
+                                    VariableDeptoAcum(VarDepto) = 1
+                                End If
+                                If VariableMuniAcum.ContainsKey(VarDeptoMuni) Then
+                                    VariableMuniAcum(VarDeptoMuni) = VariableMuniAcum(VarDeptoMuni) + 1
+                                Else
+                                    VariableMuniAcum(VarDeptoMuni) = 1
+                                End If
+                                '=========================================================
+                                If VariableAcum.ContainsKey(VarTreePair.Key) Then
+                                    VariableAcum(VarTreePair.Key) = VariableAcum(VarTreePair.Key) + 1
+                                Else
+                                    VariableAcum(VarTreePair.Key) = 1
+                                End If
+                            End If
+                        Next
+                    Else
+                        Dim Hogares As ArrayList = Ficha.GetFichaVivienda.GetHogaresEnVivienda
+                        For Each Hogar As FichaHogar In Hogares
+                            Dim Miembros As ArrayList = Hogar.GetMiembrosEnHogar
+                            For Each Miembro As FichaMiembro In Miembros
+                                Dim VarSexo As VariableSexo
+                                VarSexo = Miembro.GetSexo
+                                VarSexo.Variable = VarTreePair.Key
+                                If VarTreePair.Value.Evaluate(Ficha.GetFichaVivienda) Then
+                                    'Desagregacion por Ubicacion Geográfica
+                                    If VariableDeptoAcum.ContainsKey(VarDepto) Then
+                                        VariableDeptoAcum(VarDepto) = VariableDeptoAcum(VarDepto) + 1
+                                    Else
+                                        VariableDeptoAcum(VarDepto) = 1
+                                    End If
+                                    If VariableMuniAcum.ContainsKey(VarDeptoMuni) Then
+                                        VariableMuniAcum(VarDeptoMuni) = VariableMuniAcum(VarDeptoMuni) + 1
+                                    Else
+                                        VariableMuniAcum(VarDeptoMuni) = 1
+                                    End If
+                                    '=========================================================
+                                    'Desagregacion por Sexo
+                                    If VariablePoblacion Then
+                                        If VariableSexoAcum.ContainsKey(VarSexo) Then
+                                            VariableSexoAcum(VarSexo) = VariableSexoAcum(VarSexo) + 1
+                                        Else
+                                            VariableSexoAcum(VarSexo) = 1
+                                        End If
+                                    End If
+                                    '=========================================================
+                                    If VariableAcum.ContainsKey(VarTreePair.Key) Then
+                                        VariableAcum(VarTreePair.Key) = VariableAcum(VarTreePair.Key) + 1
+                                    Else
+                                        VariableAcum(VarTreePair.Key) = 1
+                                    End If
+                                End If
+                            Next
+                        Next
+
+                    End If
                 Next
             Next
-            'Dim VarAcumPair As KeyValuePair(Of String, Double)
-            'For Each VarAcumPair In VariableAcum
-            '    Console.WriteLine(VarAcumPair.Key + " " + Convert.ToString(VarAcumPair.Value))
-            'Next
+
             Dim SqlConn As SqlConnection = GetConnection()
 
             Dim NumsSexo As New Dictionary(Of Integer, Double)
@@ -201,7 +234,6 @@ Public Class CalculadoraIndicadores
                     For Each DenNum As KeyValuePair(Of Integer, Double) In DensDepto
                         res = 0
                         Dim CommandDepto As New SqlCommand(InsertValoresDepartameto, SqlConn)
-                        '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdDepartamento,@Valor,@CreadorPor
                         CommandDepto.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
                         CommandDepto.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
                         CommandDepto.Parameters.AddWithValue("@IdDepartamento", DenNum.Key)
@@ -225,7 +257,6 @@ Public Class CalculadoraIndicadores
                             res = num / den
                         End If
                         Dim CommandDepto As New SqlCommand(InsertValoresDepartameto, SqlConn)
-                        '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdDepartamento,@Valor,@CreadorPor
                         CommandDepto.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
                         CommandDepto.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
                         CommandDepto.Parameters.AddWithValue("@IdDepartamento", NumDen.Key)
@@ -260,7 +291,6 @@ Public Class CalculadoraIndicadores
                     For Each DenNum As KeyValuePair(Of VariableDepartamentoMunicipio, Double) In DensMunis
                         res = 0
                         Dim CommandMuni As New SqlCommand(InsertValoresMunicipio, SqlConn)
-                        '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdDepartamento, @IdMunicipio, @Valor,@CreadorPor
                         CommandMuni.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
                         CommandMuni.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
                         CommandMuni.Parameters.AddWithValue("@IdDepartamento", DenNum.Key.Departamento)
@@ -286,7 +316,6 @@ Public Class CalculadoraIndicadores
                             res = num / den
                         End If
                         Dim CommandMuni As New SqlCommand(InsertValoresMunicipio, SqlConn)
-                        '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdDepartamento, @IdMunicipio, @Valor,@CreadorPor
                         CommandMuni.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
                         CommandMuni.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
                         CommandMuni.Parameters.AddWithValue("@IdDepartamento", NumDen.Key.Departamento)
@@ -311,7 +340,6 @@ Public Class CalculadoraIndicadores
                     For Each DenNum As KeyValuePair(Of Integer, Double) In DensSexo
                         res = 0
                         Dim CommandSexo As New SqlCommand(InsertValoresSexo, SqlConn)
-                        '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdSexo,@Valor,@CreadorPor
                         CommandSexo.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
                         CommandSexo.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
                         CommandSexo.Parameters.AddWithValue("@IdSexo", DenNum.Key)
@@ -335,7 +363,6 @@ Public Class CalculadoraIndicadores
                             res = num / den
                         End If
                         Dim CommandSexo As New SqlCommand(InsertValoresSexo, SqlConn)
-                        '@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdSexo,@Valor,@CreadorPor
                         CommandSexo.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
                         CommandSexo.Parameters.AddWithValue("@IdIndicadorEvaluacionPorPrograma", Formula.IdIndicadoresEvaluacionPorPrograma)
                         CommandSexo.Parameters.AddWithValue("@IdSexo", NumDen.Key)

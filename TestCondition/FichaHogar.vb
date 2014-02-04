@@ -1,8 +1,9 @@
 ﻿
-Public Class FichaHogar
+Public Class FichaHogar : Implements FichaInterface
     Private ValoresRespuestasUnicas As Dictionary(Of String, Integer)
     Private ValoresRespuestasMultiples As Dictionary(Of String, ArrayList)
     Private MiembrosEnHogar As ArrayList
+    Private ViviendaReference As FichaVivienda
     Private _IdHogar As Integer
     Public Property IdHogar() As Integer
         Get
@@ -15,6 +16,9 @@ Public Class FichaHogar
     Public Sub New()
         Me.ValoresRespuestasUnicas = New Dictionary(Of String, Integer)
         Me.ValoresRespuestasMultiples = New Dictionary(Of String, ArrayList)
+    End Sub
+    Public Sub SetViviendaReference(ByRef ViviendaReference As FichaVivienda)
+        Me.ViviendaReference = ViviendaReference
     End Sub
     Public Sub SetValorRespuestaUnica(ByVal Pregunta As String, ByRef Valor As Object)
         If Not TypeOf Valor Is DBNull Then
@@ -32,6 +36,19 @@ Public Class FichaHogar
     Public Sub SetMiembros(ByRef Miembros As ArrayList)
         MiembrosEnHogar = Miembros
     End Sub
+    Public Function GetValorRespuestaUnica(ByVal Pregunta As String) As Integer Implements FichaInterface.GetValorRespuestaUnica
+        Return ValoresRespuestasUnicas(Pregunta)
+    End Function
+    Public Function CheckRespuestaUnica(ByVal Pregunta As String) As Boolean Implements FichaInterface.CheckRespuestaUnica
+        Return ValoresRespuestasUnicas.ContainsKey(Pregunta)
+    End Function
+    Public Function GetValoresRespuestaMultiple(ByVal Pregunta As String) As ArrayList Implements FichaInterface.GetValoresRespuestaMultiple
+        Return ValoresRespuestasMultiples(Pregunta)
+    End Function
+    Public Function CheckRespuestaMultiple(ByVal Pregunta As String) As Boolean Implements FichaInterface.CheckRespuestaMultiple
+        Return ValoresRespuestasMultiples.ContainsKey(Pregunta)
+    End Function
+
     Public Sub PrintAllValues()
         Dim SingleValuePair As KeyValuePair(Of String, Integer)
         For Each SingleValuePair In ValoresRespuestasUnicas

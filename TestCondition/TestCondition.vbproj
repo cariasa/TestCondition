@@ -86,6 +86,7 @@
     <Compile Include="ConditionTreeNode.vb" />
     <Compile Include="Ficha.vb" />
     <Compile Include="FichaHogar.vb" />
+    <Compile Include="FichaInterface.vb" />
     <Compile Include="FichaMiembro.vb" />
     <Compile Include="FichaSU.vb" />
     <Compile Include="FichaVivienda.vb" />
