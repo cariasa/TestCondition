@@ -117,7 +117,7 @@ Public Class CalculadoraIndicadores
                     ElseIf VarTreePair.Value.Level = "H" Then
                         Dim Hogares As ArrayList = Ficha.GetFichaVivienda.GetHogaresEnVivienda
                         For Each Hogar As FichaHogar In Hogares
-                            If VarTreePair.Value.Evaluate(Ficha.GetFichaVivienda) Then
+                            If VarTreePair.Value.Evaluate(Hogar) Then
                                 'Desagregacion por Ubicacion Geográfica
                                 If VariableDeptoAcum.ContainsKey(VarDepto) Then
                                     VariableDeptoAcum(VarDepto) = VariableDeptoAcum(VarDepto) + 1
@@ -145,7 +145,7 @@ Public Class CalculadoraIndicadores
                                 Dim VarSexo As VariableSexo
                                 VarSexo = Miembro.GetSexo
                                 VarSexo.Variable = VarTreePair.Key
-                                If VarTreePair.Value.Evaluate(Ficha.GetFichaVivienda) Then
+                                If VarTreePair.Value.Evaluate(Miembro) Then
                                     'Desagregacion por Ubicacion Geográfica
                                     If VariableDeptoAcum.ContainsKey(VarDepto) Then
                                         VariableDeptoAcum(VarDepto) = VariableDeptoAcum(VarDepto) + 1
@@ -765,6 +765,7 @@ Public Class CalculadoraIndicadores
         If C.Total Then
             Dim Tree As New ConditionTreeNode("T")
             Tree.Total = True
+            Tree.Level = C.Operando1(0)
             Return Tree
         End If
         Dim Fuente As String

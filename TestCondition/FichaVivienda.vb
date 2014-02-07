@@ -70,16 +70,7 @@ Public Class FichaVivienda : Implements FichaInterface
         VarDeptoMuni.Municipio = ValoresRespuestasUnicas("V02")
         Return VarDeptoMuni
     End Function
-    Public Function GetSexo() As VariableSexo
-        Dim VarSexo As VariableSexo
-        If ValoresRespuestasUnicas.ContainsKey("P9") Then
-            VarSexo = New VariableSexo
-            VarSexo.Sexo = ValoresRespuestasUnicas("P9")
-        Else
-            VarSexo = Nothing
-        End If
-        Return VarSexo
-    End Function
+
     Public Sub PrintAllValues()
         Dim SingleValuePair As KeyValuePair(Of String, Integer)
         For Each SingleValuePair In ValoresRespuestasUnicas

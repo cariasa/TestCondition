@@ -13,6 +13,12 @@ Public Class Ficha
         RetrieveViviendaHogares()
         RetrieveHogarMiembros()
     End Sub
+    Public Function GetFichaVivienda() As FichaVivienda
+        Return Ficha
+    End Function
+    Public Function GetFichasHogar() As ArrayList
+        Return Ficha.GetHogaresEnVivienda
+    End Function
     Private Function GetConnection() As SqlConnection
         Dim SqlConn As New SqlConnection
         SqlConn.ConnectionString = ConnectionString
@@ -176,15 +182,10 @@ Public Class Ficha
         Next
     End Sub
     Public Function GetDepartamento() As VariableDepartamento
-        Dim VarDepto As New VariableDepartamento
-        VarDepto.Departamento = Ficha.GetValorRespuestaUnica("V01")
-        Return VarDepto
+        Return Ficha.GetDepartamento
     End Function
     Public Function GetDepartamentoMunicipio() As VariableDepartamentoMunicipio
-        Dim VarDeptoMuni As New VariableDepartamentoMunicipio
-        VarDeptoMuni.Departamento = Ficha.GetValorRespuestaUnica("V01")
-        VarDeptoMuni.Municipio = Ficha.GetValorRespuestaUnica("V02")
-        Return VarDeptoMuni
+        Return Ficha.GetDepartamentoMunicipio
     End Function
     
     Public Sub PrintFullFicha()

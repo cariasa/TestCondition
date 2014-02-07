@@ -48,7 +48,9 @@ Public Class FichaHogar : Implements FichaInterface
     Public Function CheckRespuestaMultiple(ByVal Pregunta As String) As Boolean Implements FichaInterface.CheckRespuestaMultiple
         Return ValoresRespuestasMultiples.ContainsKey(Pregunta)
     End Function
-
+    Public Function GetMiembrosEnHogar() As ArrayList
+        Return MiembrosEnHogar
+    End Function
     Public Sub PrintAllValues()
         Dim SingleValuePair As KeyValuePair(Of String, Integer)
         For Each SingleValuePair In ValoresRespuestasUnicas
@@ -66,8 +68,5 @@ Public Class FichaHogar : Implements FichaInterface
         Next
     End Sub
 
-    Function GetMiembrosEnHogar() As ArrayList
-        Return MiembrosEnHogar
-    End Function
 
 End Class

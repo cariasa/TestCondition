@@ -110,7 +110,7 @@
         End If
     End Sub
     'Hay que pasar como parametro la Ficha y el Instrumento de Evaluación a verificar
-    Public Function Evaluate(ByRef FSU As FichaSU) As Boolean
+    Public Function Evaluate(ByRef FSU As FichaInterface) As Boolean
         If LogicalOperation = "T" And EsTotal Then
             Return True
         End If
