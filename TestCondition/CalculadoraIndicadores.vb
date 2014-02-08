@@ -1,5 +1,8 @@
 ﻿Imports System.Data.SqlClient
 Imports System.Data
+' Este programa tiene dos limitaciones 
+' No empareja preguntas de la FSU con la IE, por lo que no se pueden calcular indicadores que usen preguntas de instrumentos diferentes
+' No desagrega ni indicadores basados en IE ni indicadores basados en valores oficiales y de programa, pues la desagregación es dinámica
 
 Public Class CalculadoraIndicadores
     Private ConnectionString As String
@@ -50,22 +53,12 @@ Public Class CalculadoraIndicadores
     Private QueryUsaFSU As String = "SELECT UsaFSU FROM AplicacionInstrumento WHERE IdAplicacionInstrumento=@IdLevantamiento"
     Private IdPrograma As Integer
     Private IdLevantamiento As Integer
-    Private UsaFSU As Boolean
+
     Public Sub New(ByVal ConnectionString As String, ByVal IdPrograma As Integer, ByVal IdLevantamiento As Integer)
         Me.ConnectionString = ConnectionString
         Me.IdPrograma = IdPrograma
         Me.IdLevantamiento = IdLevantamiento
 
-        Dim SqlConn As SqlConnection = GetConnection()
-        Dim Command As SqlCommand = New SqlCommand(QueryUsaFSU, SqlConn)
-        Command.Parameters.AddWithValue("@IdLevantamiento", IdLevantamiento)
-        Dim Reader As SqlDataReader = Command.ExecuteReader
-        If Reader.Read Then
-            UsaFSU = Convert.ToBoolean(Reader("UsaFSU"))
-        Else
-            Throw New Exception("No Hay Levantamiento con ID= " + Convert.ToString(IdLevantamiento))
-        End If
-        SqlConn.Close()
     End Sub
     Sub ComputeIEAcumulators(ByVal Ficha As FichaSU, ByVal VarTreePair As KeyValuePair(Of String, ConditionTreeNode), ByRef VariableAcum As Dictionary(Of String, Double))
         If VarTreePair.Value.Evaluate(Ficha) Then
@@ -489,12 +482,15 @@ Public Class CalculadoraIndicadores
         VariableDeptoAcum = New Dictionary(Of VariableDepartamento, Double)(New VariableDepartamentoComparer)
         VariableMuniAcum = New Dictionary(Of VariableDepartamentoMunicipio, Double)(New VariableDepartamentoMunicipioComparer)
         VariableSexoAcum = New Dictionary(Of VariableSexo, Double)(New VariableSexoComparer)
-
+        Dim ConjuntoFichasFSU As New HashSet(Of Integer)
         For Each f As ParFSU_IE In ListFichasID
-            Dim Ficha As New Ficha(f.CodigoFSU, ConnectionString)
-            For Each VarTreePair In VariablesConditions
-                ComputeFSUAcumulators(Ficha, VarTreePair, VariableAcum, VariableDeptoAcum, VariableMuniAcum, VariableSexoAcum)
-            Next
+            If Not ConjuntoFichasFSU.Contains(f.CodigoFSU) Then
+                ConjuntoFichasFSU.Add(f.CodigoFSU)
+                Dim Ficha As New Ficha(f.CodigoFSU, ConnectionString)
+                For Each VarTreePair In VariablesConditions
+                    ComputeFSUAcumulators(Ficha, VarTreePair, VariableAcum, VariableDeptoAcum, VariableMuniAcum, VariableSexoAcum)
+                Next
+            End If
         Next
         ComputeIndicatorsAndInsert(Formulas, CreadoPor, VariableAcum, VariableDeptoAcum, VariableMuniAcum, VariableSexoAcum)
 
@@ -665,13 +661,6 @@ Public Class CalculadoraIndicadores
         Reader.Close()
         SqlConn.Close()
         Return List
-
-        'Temporalmente la funcion retornara todas las fichas de 1 a IdLevantamiento de la muestra FSU provista
-        'Dim List As New ArrayList
-        'For i = 1 To IdLevantamiento
-        '    List.Add(New ParFSU_IE(i, i))
-        'Next
-        'Return List
     End Function
     Private Function GetCondiciones(ByVal IdVariable As Integer) As ArrayList
         Dim SqlConn As SqlConnection
