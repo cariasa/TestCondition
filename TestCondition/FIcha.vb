@@ -1,4 +1,5 @@
 ﻿Imports System.Data.SqlClient
+Imports System.Data
 
 Public Class Ficha
     Private Ficha As FichaVivienda
@@ -187,7 +188,7 @@ Public Class Ficha
     Public Function GetDepartamentoMunicipio() As VariableDepartamentoMunicipio
         Return Ficha.GetDepartamentoMunicipio
     End Function
-    
+
     Public Sub PrintFullFicha()
         Console.WriteLine("Id Ficha = " + IdFicha.ToString)
         Console.WriteLine("--------------------------------------------------------------------------------------------")
