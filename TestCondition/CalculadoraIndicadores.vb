@@ -6,10 +6,10 @@ Imports System.Data
 
 Public Class CalculadoraIndicadores
     Private ConnectionString As String
-    Private QueryCondiciones As String = "SELECT * FROM Condiciones WHERE IdVariable = @IdVariable"
-    Private QueryValoresOficiales As String = "SELECT TOP 1 Valor FROM VariablesMacro WHERE IdVariable = @IdVariable ORDER BY FechaCreacion DESC"
-    Private QueryValoresPrograma As String = "SELECT TOP 1 Valor FROM VariablesPrograma WHERE IdVariable = @IdVariable ORDER BY FechaCreacion DESC"
-    Private QueryRaiz As String = "SELECT * FROM Condiciones WHERE Raiz = 1 AND IdVariable = @IdVariable"
+    Private QueryCondiciones As String = "SELECT * FROM Condiciones WHERE Activo=1 and IdVariable = @IdVariable"
+    Private QueryValoresOficiales As String = "SELECT TOP 1 Valor FROM VariablesMacro WHERE Activo=1 and IdVariable = @IdVariable ORDER BY FechaCreacion DESC"
+    Private QueryValoresPrograma As String = "SELECT TOP 1 Valor FROM VariablesPrograma WHERE Activo=1 and IdVariable = @IdVariable ORDER BY FechaCreacion DESC"
+    Private QueryRaiz As String = "SELECT * FROM Condiciones WHERE Activo=1 and Raiz = 1 AND IdVariable = @IdVariable"
     Private QueryFormulas As String = "SELECT  " _
                                 & "	IEP.IdIndicador,  " _
                                 & "	IEP.IdIndicadoresEvaluacionPorPrograma,  " _
@@ -21,9 +21,9 @@ Public Class CalculadoraIndicadores
                                 & "	FI.UsaVariableMacroDenominador  " _
                                 & "FROM  " _
                                 & "	IndicadoresEvaluacionPorPrograma IEP  " _
-                                & "	JOIN FormulaIndicador FI ON IEP.IdIndicador=FI.IdIndicador  " _
-                                & "	JOIN Variables V1 ON FI.IdVariableNumerador = V1.IdVariable  " _
-                                & "	JOIN Variables V2 ON FI.IdVariableDenominador = V2.IdVariable  " _
+                                & "	JOIN FormulaIndicador FI ON IEP.IdIndicador=FI.IdIndicador and FI.Activo=1 " _
+                                & "	JOIN Variables V1 ON FI.IdVariableNumerador = V1.IdVariable and V1.Activo=1  " _
+                                & "	JOIN Variables V2 ON FI.IdVariableDenominador = V2.IdVariable and V2.Activo=1  " _
                                 & "WHERE  " _
                                 & "	IEP.IdPrograma = @IdPrograma AND " _
                                 & "	FI.BasadoEnFSU = @BasadoEnFSU"
@@ -50,7 +50,7 @@ Public Class CalculadoraIndicadores
     Private InsertValoresSexo As String = "INSERT INTO ValoresSexo " _
                                & "(IdAplicacionInstrumento, IdIndicadorEvaluacionPorPrograma, IdSexo, Valor, CreadoPor) " _
                                & "VALUES (@IdLevantamiento,@IdIndicadorEvaluacionPorPrograma,@IdSexo,@Valor,@CreadoPor)"
-    Private QueryUsaFSU As String = "SELECT UsaFSU FROM AplicacionInstrumento WHERE IdAplicacionInstrumento=@IdLevantamiento"
+    Private QueryUsaFSU As String = "SELECT UsaFSU FROM AplicacionInstrumento WHERE IdAplicacionInstrumento=@IdLevantamiento and Activo=1"
     Private IdPrograma As Integer
     Private IdLevantamiento As Integer
 
